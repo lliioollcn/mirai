@@ -25,6 +25,7 @@ import net.mamoe.mirai.internal.network.protocol.packet.chat.receive.MessageSvcP
 import net.mamoe.mirai.internal.network.protocol.packet.sendAndExpect
 import net.mamoe.mirai.message.data.MessageChain
 import net.mamoe.mirai.utils.check
+import net.mamoe.mirai.utils.mapToIntArray
 import net.mamoe.mirai.utils.stream
 import net.mamoe.mirai.utils.toLongUnsigned
 import java.util.stream.Stream
@@ -112,6 +113,10 @@ internal class RoamingMessagesImplFriend(
                             override val sender: Long get() = message.msgHead.fromUin
                             override val target: Long get() = message.msgHead.toUin
                             override val time: Long get() = message.msgHead.msgTime.toLongUnsigned()
+                            override val ids: IntArray by lazy { messages.mapToIntArray { it.msgHead.msgSeq } }
+                            override val internalIds: IntArray by lazy {
+                                messages.mapToIntArray { it.msgBody.richText.attr?.random ?: 0 } // other client 消息的这个是0
+                            }
                         }
 
                         if (filter.invoke(roamingMessage)) {
@@ -124,18 +129,5 @@ internal class RoamingMessagesImplFriend(
                 random = resp.random
             }
         }
-    }
-
-    override suspend fun getMessage(id: Int, internalId: Int, time: Long): MessageChain? {
-        TODO()
-//        return MessageSvcPbGetRoamMsgReq.createForFriend(
-//            client = contact.bot.client,
-//            uin = contact.uin,
-//            timeStart = 0,
-//            lastMsgTime = Int.MAX_VALUE.toLongUnsigned(),
-//            random = internalId.toLongUnsigned(),
-//            maxCount = 1000,
-//            sig = byteArrayOf()
-//        ).sendAndExpect(contact.bot).value.check().messages?.filter { it.msgHead.msgUid.contains(id) }?.firstOrNull()
     }
 }

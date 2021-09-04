@@ -12,6 +12,7 @@
 package net.mamoe.mirai.contact.roaming
 
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.firstOrNull
 import net.mamoe.kjbb.JvmBlockingBridge
 import net.mamoe.mirai.message.data.MessageChain
 import net.mamoe.mirai.message.data.MessageSource
@@ -110,6 +111,9 @@ public interface RoamingMessages {
      * @param internalId [MessageSource.internalIds]
      * @param time [MessageSource.time] 服务器时间
      */
-    public suspend fun getMessage(id: Int, internalId: Int, time: Long): MessageChain?
+    public suspend fun getMessage(id: Int, internalId: Int, time: Long): MessageChain? {
+        return getMessagesIn(time, time) { message ->
+            id in message.ids && internalId in message.internalIds
+        }.firstOrNull()
+    }
 }
-

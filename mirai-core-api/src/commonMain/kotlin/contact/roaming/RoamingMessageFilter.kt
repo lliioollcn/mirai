@@ -11,6 +11,7 @@ package net.mamoe.mirai.contact.roaming
 
 import net.mamoe.mirai.Bot
 import net.mamoe.mirai.contact.Contact
+import net.mamoe.mirai.message.data.MessageSource
 
 /**
  * @since 2.8
@@ -76,4 +77,14 @@ public interface RoamingMessage {
      * 时间戳, 单位为秒, 服务器时间.
      */
     public val time: Long
+
+    /**
+     * @see MessageSource.ids
+     */
+    public val ids: IntArray
+
+    /**
+     * @see MessageSource.internalIds
+     */
+    public val internalIds: IntArray
 }

@@ -21,6 +21,7 @@ import net.mamoe.mirai.contact.roaming.RoamingMessages
 import net.mamoe.mirai.internal.contact.FriendImpl
 import net.mamoe.mirai.internal.contact.uin
 import net.mamoe.mirai.internal.message.toMessageChainOnline
+import net.mamoe.mirai.internal.network.protocol.data.proto.MsgComm
 import net.mamoe.mirai.internal.network.protocol.packet.chat.receive.MessageSvcPbGetRoamMsgReq
 import net.mamoe.mirai.internal.network.protocol.packet.sendAndExpect
 import net.mamoe.mirai.message.data.MessageChain
@@ -62,14 +63,7 @@ internal class RoamingMessagesImplFriend(
                     messages.forEach { emit(it.toMessageChainOnline(contact.bot)) }
                 } else {
                     for (message in messages) {
-                        val roamingMessage = object : RoamingMessage {
-                            override val contact: Contact get() = this@RoamingMessagesImplFriend.contact
-                            override val sender: Long get() = message.msgHead.fromUin
-                            override val target: Long get() = message.msgHead.toUin // should convert to code for group
-                            override val time: Long get() = message.msgHead.msgTime.toLongUnsigned()
-                        }
-
-                        if (filter.invoke(roamingMessage)) {
+                        if (filter.invoke(createRoamingMessage(message, messages))) {
                             emit(message.toMessageChainOnline(contact.bot))
                         }
                     }
@@ -78,6 +72,20 @@ internal class RoamingMessagesImplFriend(
                 lastMessageTime = resp.lastMessageTime
                 random = resp.random
             }
+        }
+    }
+
+    private fun createRoamingMessage(
+        message: MsgComm.Msg,
+        messages: List<MsgComm.Msg>
+    ) = object : RoamingMessage {
+        override val contact: Contact get() = this@RoamingMessagesImplFriend.contact
+        override val sender: Long get() = message.msgHead.fromUin
+        override val target: Long get() = message.msgHead.toUin // should convert to code for group
+        override val time: Long get() = message.msgHead.msgTime.toLongUnsigned()
+        override val ids: IntArray by lazy { messages.mapToIntArray { it.msgHead.msgSeq } }
+        override val internalIds: IntArray by lazy {
+            messages.mapToIntArray { it.msgBody.richText.attr?.random ?: 0 } // other client 消息的这个是0
         }
     }
 
@@ -108,18 +116,7 @@ internal class RoamingMessagesImplFriend(
                     messages.forEach { yield(runBlocking { it.toMessageChainOnline(contact.bot) }) }
                 } else {
                     for (message in messages) {
-                        val roamingMessage = object : RoamingMessage {
-                            override val contact: Contact get() = this@RoamingMessagesImplFriend.contact
-                            override val sender: Long get() = message.msgHead.fromUin
-                            override val target: Long get() = message.msgHead.toUin
-                            override val time: Long get() = message.msgHead.msgTime.toLongUnsigned()
-                            override val ids: IntArray by lazy { messages.mapToIntArray { it.msgHead.msgSeq } }
-                            override val internalIds: IntArray by lazy {
-                                messages.mapToIntArray { it.msgBody.richText.attr?.random ?: 0 } // other client 消息的这个是0
-                            }
-                        }
-
-                        if (filter.invoke(roamingMessage)) {
+                        if (filter.invoke(createRoamingMessage(message, messages))) {
                             yield(runBlocking { message.toMessageChainOnline(contact.bot) })
                         }
                     }

@@ -50,6 +50,25 @@ internal suspend fun List<MsgComm.Msg>.toMessageChainOnline(
     return toMessageChain(bot, groupIdOrZero, true, messageSourceKind).refineDeep(bot, refineContext)
 }
 
+internal suspend fun MsgComm.Msg.toMessageChainOnline(
+    bot: Bot,
+    refineContext: RefineContext = EmptyRefineContext,
+): MessageChain {
+    fun getSourceKind(c2cCmd: Int): MessageSourceKind {
+        return when (c2cCmd) {
+            11 -> MessageSourceKind.FRIEND
+            else -> error("Could not get source kind from c2cCmd: $c2cCmd")
+        }
+    }
+
+    val kind = getSourceKind(msgHead.c2cCmd)
+    val groupId = when (kind) {
+        MessageSourceKind.GROUP -> msgHead.groupInfo?.groupCode ?: 0
+        else -> 0
+    }
+    return listOf(this).toMessageChainOnline(bot, groupId, kind, refineContext)
+}
+
 //internal fun List<MsgComm.Msg>.toMessageChainOffline(
 //    bot: Bot,
 //    groupIdOrZero: Long,
